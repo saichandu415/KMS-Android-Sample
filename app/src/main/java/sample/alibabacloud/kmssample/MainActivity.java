@@ -1,9 +1,14 @@
 package sample.alibabacloud.kmssample;
 
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.TextInputEditText;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import com.aliyuncs.DefaultAcsClient;
 import com.aliyuncs.exceptions.ClientException;
@@ -18,26 +23,21 @@ import com.aliyuncs.kms.model.v20160120.DescribeKeyRequest;
 import com.aliyuncs.kms.model.v20160120.DescribeKeyResponse;
 import com.aliyuncs.kms.model.v20160120.EncryptRequest;
 import com.aliyuncs.kms.model.v20160120.EncryptResponse;
-import com.aliyuncs.kms.model.v20160120.GenerateDataKeyRequest;
-import com.aliyuncs.kms.model.v20160120.GenerateDataKeyResponse;
-import com.aliyuncs.kms.model.v20160120.ListKeysRequest;
-import com.aliyuncs.kms.model.v20160120.ListKeysResponse;
 import com.aliyuncs.profile.DefaultProfile;
 import com.aliyuncs.profile.IClientProfile;
 
-import java.util.Iterator;
-import java.util.List;
-
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     static DefaultAcsClient kmsClient;
     private static final String TAG = "MainActivity";
 
-    String regionId = "cn-hangzhou";
-    String accessKeyId = "LTAIgHTQBOgP0wY3";
-    String accessKeySecret = "gemlASUdKp39AkOrSqFAnRMiQADIBF";
+    String regionId ;
+    String accessKeyId ;
+    String accessKeySecret ;
 
-
+    TextView output;
+    TextInputEditText userName,passWord,email,address;
+    Button eCredentials,dCredentials, eForm, dForm;
 
 
     @Override
@@ -45,16 +45,36 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        regionId = getString(R.string.regionId);
+        accessKeyId = getString(R.string.AccessKey);
+        accessKeySecret = getString(R.string.AccessKeySecret);
+
+        output = findViewById(R.id.output);
+        userName = findViewById(R.id.userName);
+        passWord = findViewById(R.id.passWord);
+        email = findViewById(R.id.email);
+        address = findViewById(R.id.address);
+
+        eCredentials = findViewById(R.id.eCredentials);
+        dCredentials = findViewById(R.id.dCredentials);
+        eForm = findViewById(R.id.eForm);
+        dForm = findViewById(R.id.dForm);
+
+        eCredentials.setOnClickListener(this);
+        dCredentials.setOnClickListener(this);
+        eForm.setOnClickListener(this);
+        dForm.setOnClickListener(this);
+
         Log.d(TAG, "===========================================");
-        Log.d(TAG, "Getting Started with KMS Service");
+        Log.d(TAG, "KMS Service started");
         Log.d(TAG, "===========================================\n");
         /**
          * RegionId: "cn-hangzhou" and "ap-southeast-1", eg. "cn-hangzhou"
          */
          kmsClient = kmsClient(regionId, accessKeyId, accessKeySecret);
 
-//         DoOnNetwork dON = new DoOnNetwork();
-//         dON.execute(kmsClient);
+
+
 
 
     }
@@ -87,33 +107,7 @@ public class MainActivity extends AppCompatActivity {
         final DescribeKeyResponse decKeyRes = kmsClient.getAcsResponse(decKeyReq);
         return decKeyRes;
     }
-    private static ListKeysResponse ListKey(int pageNumber, int pageSize) throws ClientException {
-        final ListKeysRequest listKeysReq = new ListKeysRequest();
-        listKeysReq.setProtocol(ProtocolType.HTTPS);
-        listKeysReq.setAcceptFormat(FormatType.JSON);
-        listKeysReq.setMethod(MethodType.POST);
-        listKeysReq.setPageNumber(pageNumber);
-        listKeysReq.setPageSize(pageSize);
-        final ListKeysResponse listKeysRes = kmsClient.getAcsResponse(listKeysReq);
-        return listKeysRes;
-    }
-    private static GenerateDataKeyResponse GenerateDataKey(String keyId, String keyDesc, int numOfBytes) throws ClientException {
-        final GenerateDataKeyRequest genDKReq = new GenerateDataKeyRequest();
-        genDKReq.setProtocol(ProtocolType.HTTPS);
-        genDKReq.setAcceptFormat(FormatType.JSON);
-        genDKReq.setMethod(MethodType.POST);
-        /**
-         * Set parameter according to KMS openAPI document:
-         * 1.KeyId
-         * 2.KeyDescription
-         * 3.NumberOfBytes
-         */
-        genDKReq.setKeySpec(keyDesc);
-        genDKReq.setKeyId(keyId);
-        genDKReq.setNumberOfBytes(numOfBytes);
-        final GenerateDataKeyResponse genDKRes = kmsClient.getAcsResponse(genDKReq);
-        return genDKRes;
-    }
+
     private static EncryptResponse Encrypt(String keyId, String plainText) throws ClientException {
         final EncryptRequest encReq = new EncryptRequest();
         encReq.setProtocol(ProtocolType.HTTPS);
@@ -134,9 +128,28 @@ public class MainActivity extends AppCompatActivity {
         return decResponse;
     }
 
-    static class DoOnNetwork extends AsyncTask<DefaultAcsClient,Void,Void>{
+    @Override
+    public void onClick(View view) {
+        int id = view.getId();
+
+        if(id == R.id.eCredentials){
+            EncryptCredentials encryptCredentials = new EncryptCredentials();
+            encryptCredentials.execute(kmsClient);
+        }else if(id == R.id.dCredentials){
+            DecryptCredentials decryptCredentials = new DecryptCredentials(this);
+            decryptCredentials.execute(kmsClient);
+        }else if(id == R.id.eForm){
+            EncryptFormData encryptFormData = new EncryptFormData();
+            encryptFormData.execute(kmsClient);
+        }else if(id == R.id.dForm) {
+            DecryptFormData decryptFormData = new DecryptFormData(this);
+            decryptFormData.execute(kmsClient);
+        }
+
+    }
+
+    class EncryptCredentials extends AsyncTask<DefaultAcsClient,Void,Void>{
         String keyId = null;
-        String plainText = "hello world";
         String cipherBlob = null;
 
         @Override
@@ -170,28 +183,6 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("Error message: " + eResponse.getErrMsg());
         }
 
-            try {
-                final ListKeysResponse listKeysRes = ListKey(1, 100);
-                /**
-                 * Parse response and do more further
-                 */
-                Log.d(TAG, "TotalCount: " + listKeysRes.getTotalCount());
-                Log.d(TAG, "PageNumber: " + listKeysRes.getPageNumber());
-                Log.d(TAG, "PageSize: " + listKeysRes.getPageSize());
-                List<ListKeysResponse.Key> keys = listKeysRes.getKeys();
-                Iterator<ListKeysResponse.Key> iterator = keys.iterator();
-                while (iterator.hasNext()) {
-                    keyId = iterator.next().getKeyId();
-                    Log.d(TAG, "KeyId: " + keyId);
-                }
-                Log.d(TAG, "===========================================");
-                Log.d(TAG, "List All MasterKeys success!\n");
-                Log.d(TAG, "===========================================\n");
-            } catch (ClientException eResponse) {
-                Log.d(TAG, "Failed.");
-                Log.d(TAG, "Error code: " + eResponse.getErrCode());
-                Log.d(TAG, "Error message: " + eResponse.getErrMsg());
-            }
         /*Describe the Key */
             try {
                 final DescribeKeyResponse decKeyRes = DescribeKey(keyId);
@@ -212,20 +203,120 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "Error code: " + eResponse.getErrCode());
                 Log.d(TAG, "Error message: " + eResponse.getErrMsg());
             }
-        /*Generate DataKey*/
             /**
-             * Request and got response
+             * Encrypt the plain text and got a cipher one
              */
             try {
-                final GenerateDataKeyResponse genDKResponse = GenerateDataKey(keyId, "AES_256", 64);
+                EncryptResponse encResponse = Encrypt(keyId, getCredentials());
+                cipherBlob = encResponse.getCiphertextBlob();
+                Log.d(TAG, "CiphertextBlob: " + cipherBlob);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        output.setText("The Encrypt Credentials are\n"+cipherBlob);
+                        setEncryptCredentials(cipherBlob);
+                    }
+                });
+                Log.d(TAG, "KeyId: " + encResponse.getKeyId());
+                Log.d(TAG, "===========================================");
+                Log.d(TAG, "Encrypt the plain text success!");
+                Log.d(TAG, "===========================================\n");
+            } catch (ClientException eResponse) {
+                Log.d(TAG, "Failed.");
+                Log.d(TAG, "Error code: " + eResponse.getErrCode());
+                Log.d(TAG, "Error message: " + eResponse.getErrMsg());
+            }
+            return null;
+        }
+    }
+
+
+    class DecryptCredentials extends AsyncTask<DefaultAcsClient,Void,Void>{
+
+        public MainActivity mainActivity;
+
+        public DecryptCredentials(MainActivity activity){
+            this.mainActivity = activity;
+        }
+
+        @Override
+        protected Void doInBackground(DefaultAcsClient... defaultAcsClients) {
+            try {
+                final DecryptResponse decResponse = Decrypt(mainActivity.getEncryptCredentials());
+                Log.d(TAG, "Plaintext: " + decResponse.getPlaintext());
+                String verifyPlainText = decResponse.getPlaintext();
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        output.setText("The Decrypt Credentials are \n"+decResponse.getPlaintext());
+                    }
+                });
+
+                int isMatch = verifyPlainText.compareTo(mainActivity.getCredentials());
+                Log.d(TAG, "KeyId: " + decResponse.getKeyId());
+                Log.d(TAG, "===========================================");
+                Log.d(TAG, "Decrypt the cipher text success, result " + (isMatch == 0 ? "match" : "mismatch" + "\n"));
+                Log.d(TAG, "===========================================\n");
+            } catch (ClientException eResponse) {
+                Log.d(TAG, "Failed.");
+                Log.d(TAG, "Error code: " + eResponse.getErrCode());
+                Log.d(TAG, "Error message: " + eResponse.getErrMsg());
+            }
+            return null;
+        }
+    }
+
+
+    class EncryptFormData extends AsyncTask<DefaultAcsClient,Void,Void>{
+        String keyId = null;
+        String cipherBlob = null;
+
+        @Override
+        protected Void doInBackground(DefaultAcsClient... defaultAcsClients) {
+
+            kmsClient = defaultAcsClients[0];
+
+            /*Create a Key*/
+            try {
+                final CreateKeyResponse response = CreateKey("testkey", "ENCRYPT/DECRYPT");
+
                 /**
                  * Parse response and do more further
                  */
-                Log.d(TAG, "CiphertextBlob: " + genDKResponse.getCiphertextBlob());
-                Log.d(TAG, "KeyId: " + genDKResponse.getKeyId());
-                Log.d(TAG, "Plaintext: " + genDKResponse.getPlaintext());
+                System.out.println(response.getKeyMetadata());
+                CreateKeyResponse.KeyMetadata meta = response.getKeyMetadata();
+
+                System.out.println("CreateTime: " + meta.getCreationDate());
+                System.out.println("Description: " + meta.getDescription());
+                System.out.println("KeyId: " + meta.getKeyId());
+                keyId = meta.getKeyId();
+                System.out.println("KeyState: " + meta.getKeyState());
+                System.out.println("KeyUsage: " + meta.getKeyUsage());
+
+                System.out.println("===========================================");
+                System.out.println("Create MasterKey Success!");
+                System.out.println("===========================================\n");
+            } catch (ClientException eResponse) {
+                System.out.println("Failed.");
+                System.out.println("Error code: " + eResponse.getErrCode());
+                System.out.println("Error message: " + eResponse.getErrMsg());
+            }
+
+        /*Describe the Key */
+            try {
+                final DescribeKeyResponse decKeyRes = DescribeKey(keyId);
+                /**
+                 * Parse response and do more further
+                 */
+                Log.d(TAG, "DescribeKey Response: ");
+                DescribeKeyResponse.KeyMetadata meta = decKeyRes.getKeyMetadata();
+                Log.d(TAG, "KeyId: " + meta.getKeyId());
+                Log.d(TAG, "Description: " + meta.getDescription());
+                Log.d(TAG, "KeyState: " + meta.getKeyState());
+                Log.d(TAG, "KeyUsage: " + meta.getKeyUsage());
                 Log.d(TAG, "===========================================");
-                Log.d(TAG, "Generate DataKey success!");
+                Log.d(TAG, "Describe the MasterKey success!");
                 Log.d(TAG, "===========================================\n");
             } catch (ClientException eResponse) {
                 Log.d(TAG, "Failed.");
@@ -236,9 +327,16 @@ public class MainActivity extends AppCompatActivity {
              * Encrypt the plain text and got a cipher one
              */
             try {
-                EncryptResponse encResponse = Encrypt(keyId, plainText);
+                EncryptResponse encResponse = Encrypt(keyId, getFormData());
                 cipherBlob = encResponse.getCiphertextBlob();
                 Log.d(TAG, "CiphertextBlob: " + cipherBlob);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        output.setText("The Encrypt Credentials are\n"+cipherBlob);
+                        setEncryptedFormData(cipherBlob);
+                    }
+                });
                 Log.d(TAG, "KeyId: " + encResponse.getKeyId());
                 Log.d(TAG, "===========================================");
                 Log.d(TAG, "Encrypt the plain text success!");
@@ -248,14 +346,34 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "Error code: " + eResponse.getErrCode());
                 Log.d(TAG, "Error message: " + eResponse.getErrMsg());
             }
-            /**
-             * Decrypt the cipher text and verify result with original plain text.
-             */
+            return null;
+        }
+    }
+
+
+    class DecryptFormData extends AsyncTask<DefaultAcsClient,Void,Void>{
+
+        private MainActivity mainActivity;
+
+        public DecryptFormData(MainActivity activity){
+            this.mainActivity = activity;
+        }
+
+        @Override
+        protected Void doInBackground(DefaultAcsClient... defaultAcsClients) {
             try {
-                DecryptResponse decResponse = Decrypt(cipherBlob);
+                final DecryptResponse decResponse = Decrypt(mainActivity.getEncryptedFormData());
                 Log.d(TAG, "Plaintext: " + decResponse.getPlaintext());
                 String verifyPlainText = decResponse.getPlaintext();
-                int isMatch = verifyPlainText.compareTo(plainText);
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        output.setText("The Decrypt Credentials are \n"+decResponse.getPlaintext());
+                    }
+                });
+
+                int isMatch = verifyPlainText.compareTo(mainActivity.getCredentials());
                 Log.d(TAG, "KeyId: " + decResponse.getKeyId());
                 Log.d(TAG, "===========================================");
                 Log.d(TAG, "Decrypt the cipher text success, result " + (isMatch == 0 ? "match" : "mismatch" + "\n"));
@@ -265,9 +383,41 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "Error code: " + eResponse.getErrCode());
                 Log.d(TAG, "Error message: " + eResponse.getErrMsg());
             }
-
             return null;
         }
+    }
+
+
+    public String getCredentials(){
+            return userName.getText() + "\n" +passWord.getText();
+    }
+
+    public void setEncryptCredentials(String credentials){
+        SharedPreferences sharedPreferences = getSharedPreferences(getString(R.string.FILE_NAME),MODE_PRIVATE);
+        SharedPreferences.Editor editor  = sharedPreferences.edit();
+        editor.putString(getString(R.string.CREDENTIALS),credentials);
+        editor.apply();
+    }
+
+    public String getEncryptCredentials(){
+        SharedPreferences sharedPreferences = getSharedPreferences(getString(R.string.FILE_NAME),MODE_PRIVATE);
+        return sharedPreferences.getString(getString(R.string.CREDENTIALS), null);
+    }
+
+    public String getFormData(){
+        return userName.getText()+"\n"+passWord.getText()+"\n"+email.getText()+"\n"+address.getText();
+    }
+
+    public void setEncryptedFormData(String formData){
+        SharedPreferences sharedPreferences = getSharedPreferences(getString(R.string.FILE_NAME),MODE_PRIVATE);
+        SharedPreferences.Editor editor  = sharedPreferences.edit();
+        editor.putString(getString(R.string.FORM_DATA),formData);
+        editor.apply();
+    }
+
+    public String getEncryptedFormData(){
+        SharedPreferences sharedPreferences = getSharedPreferences(getString(R.string.FILE_NAME),MODE_PRIVATE);
+        return sharedPreferences.getString(getString(R.string.FORM_DATA), null);
     }
 
 }

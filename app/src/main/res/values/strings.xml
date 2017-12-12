@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">KMSSample</string>
+
+    <!-- Alibaba KMS Service details-->
+    <!-- Please replace this details with your own-->
+    <!--Public Endpoint-->
+    <string name="regionId">UPDATE YOUR REGION ID HERE Ex. cn-hangzhou</string>
+    <!-- Access ID -->
+    <string name="AccessKey">UPDATE YOUR ACCESS ID</string>
+    <!-- Access key Secret -->
+    <string name="AccessKeySecret">UPDATE YOUR ACCESS KEY HERE</string>
+
+    <string name="FILE_NAME">LOGIN_DETAILS</string>
+    <string name="CREDENTIALS">CREDENTIALS</string>
+    <string name="FORM_DATA">FORM_DATA</string>
+
 </resources>

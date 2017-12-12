@@ -112,7 +112,9 @@
         android:layout_height="wrap_content"
         android:textAlignment="center"
         android:layout_below="@id/btnLayout"
+        android:id="@+id/output"
         android:textSize="14sp"
+        android:textColor="#000000"
         android:text="The O/P is"/>
 
 </RelativeLayout>
